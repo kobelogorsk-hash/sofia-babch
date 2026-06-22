@@ -94,6 +94,16 @@
             color: #f39c12;
         }
 
+        .cell.team-a {
+            background: rgba(46, 204, 113, 0.2);
+            border-color: #2ecc71;
+        }
+
+        .cell.team-b {
+            background: rgba(243, 156, 18, 0.2);
+            border-color: #f39c12;
+        }
+
         .players-info {
             display: flex;
             justify-content: center;
@@ -116,16 +126,6 @@
 
         .player-2-card {
             background: #3498db;
-            color: white;
-        }
-
-        .player-3-card {
-            background: #2ecc71;
-            color: white;
-        }
-
-        .player-4-card {
-            background: #f39c12;
             color: white;
         }
 
@@ -219,21 +219,21 @@
 </head>
 <body>
     <div class="container">
-        <h1>🎮 Крестики-Нолики</h1>
-        <p style="margin-bottom: 20px; color: #666;">Игра для 4 игроков!</p>
+        <h1>🎮 Крестики-Нолики 2x2</h1>
+        <p style="margin-bottom: 20px; color: #666;">Командная игра! Соберите линию из 5 символов!</p>
         
         <div class="players-info">
             <div class="player-card player-1-card active" id="player-1-card">
-                ❤️ Игрок 1
+                ❤️ Команда A (Игрок 1)
             </div>
             <div class="player-card player-2-card" id="player-2-card">
-                ⭐ Игрок 2
+                ⭐ Команда B (Игрок 2)
             </div>
             <div class="player-card player-3-card" id="player-3-card">
-                ❤️ Игрок 3
+                💚 Команда A (Игрок 3)
             </div>
             <div class="player-card player-4-card" id="player-4-card">
-                ⭐ Игрок 4
+                🧡 Команда B (Игрок 4)
             </div>
         </div>
 
@@ -263,11 +263,16 @@
         let board = [];
         
         const players = [
-            { id: 1, symbol: '❤️', name: 'Игрок 1', color: '#e74c3c' },
-            { id: 2, symbol: '⭐', name: 'Игрок 2', color: '#3498db' },
-            { id: 3, symbol: '❤️', name: 'Игрок 3', color: '#2ecc71' },
-            { id: 4, symbol: '⭐', name: 'Игрок 4', color: '#f39c12' }
+            { id: 1, symbol: '❤️', name: 'Команда A (Игрок 1)', color: '#e74c3c', team: 'A' },
+            { id: 2, symbol: '⭐', name: 'Команда B (Игрок 2)', color: '#3498db', team: 'B' },
+            { id: 3, symbol: '💚', name: 'Команда A (Игрок 3)', color: '#2ecc71', team: 'A' },
+            { id: 4, symbol: '🧡', name: 'Команда B (Игрок 4)', color: '#f39c12', team: 'B' }
         ];
+
+        // Teams: Team A wins with players 1 and 3, Team B wins with players 2 and 4
+        function getTeam(playerId) {
+            return players[playerId - 1].team;
+        }
 
         function initBoard() {
             board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(0));
@@ -305,6 +310,10 @@
             const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
             cell.textContent = players[currentPlayer - 1].symbol;
             cell.classList.add('taken', `player-${currentPlayer}`);
+            
+            // Add team class
+            const team = getTeam(currentPlayer);
+            cell.classList.add(team === 'A' ? 'team-a' : 'team-b');
         }
 
         function nextPlayer() {
@@ -325,6 +334,7 @@
 
         function checkWin(row, col) {
             const player = board[row][col];
+            const playerTeam = getTeam(player);
             
             // Directions: horizontal, vertical, diagonal \, diagonal /
             const directions = [
@@ -337,10 +347,10 @@
             for (const [dir1, dir2] of directions) {
                 let count = 1;
                 
-                // Check in first direction
-                count += countInDirection(row, col, dir1[0], dir1[1], player);
-                // Check in opposite direction
-                count += countInDirection(row, col, dir2[0], dir2[1], player);
+                // Check in first direction (count same team)
+                count += countInDirectionForTeam(row, col, dir1[0], dir1[1], playerTeam);
+                // Check in opposite direction (count same team)
+                count += countInDirectionForTeam(row, col, dir2[0], dir2[1], playerTeam);
                 
                 if (count >= WIN_CONDITION) return true;
             }
@@ -348,13 +358,18 @@
             return false;
         }
 
-        function countInDirection(row, col, dRow, dCol, player) {
+        function countInDirectionForTeam(row, col, dRow, dCol, team) {
             let count = 0;
             let r = row + dRow;
             let c = col + dCol;
             
-            while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && board[r][c] === player) {
-                count++;
+            while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+                const cellPlayer = board[r][c];
+                if (cellPlayer !== 0 && getTeam(cellPlayer) === team) {
+                    count++;
+                } else {
+                    break;
+                }
                 r += dRow;
                 c += dCol;
             }
@@ -376,10 +391,10 @@
                 winnerSymbol.textContent = '🤝';
                 winnerText.textContent = 'Ничья!';
             } else {
-                const winner = players[currentPlayer - 1];
-                winnerSymbol.textContent = winner.symbol;
-                winnerText.textContent = `🎉 ${winner.name} победил!`;
-                winnerText.style.color = winner.color;
+                const winningTeam = getTeam(currentPlayer);
+                winnerSymbol.textContent = winningTeam === 'A' ? '❤️💚' : '⭐🧡';
+                winnerText.textContent = `🎉 Команда ${winningTeam} победила!`;
+                winnerText.style.color = winningTeam === 'A' ? '#2ecc71' : '#f39c12';
             }
             
             modal.style.display = 'flex';
